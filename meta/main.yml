@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  author: polnoch
+  description: Installs Fedora LXQT desktop in the basic Fedora system
+  license: AGPL
+  min_ansible_version: 2.1
+  platforms:
+    - name: Fedora
+      versions:
+        - 25
+  categories:
+    - desktop
+dependencies: []

@@ -1,0 +1,223 @@
+---
+
+#- name: delete cobbler's sources.list
+#  file:
+#    path: '/etc/apt/sources.list'
+#    state: absent
+
+- name: add additional fedora repos
+  dnf:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - 'http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-25.noarch.rpm'
+    - 'http://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-25.noarch.rpm'
+    - 'http://mirror.yandex.ru/fedora/russianfedora/russianfedora/free/fedora/russianfedora-free-release-stable.noarch.rpm'
+    - 'http://mirror.yandex.ru/fedora/russianfedora/russianfedora/nonfree/fedora/russianfedora-nonfree-release-stable.noarch.rpm'
+
+- name: add owncloud and Virtualbox repos
+  get_url:
+   url: "{{ item }}"
+   dest: /etc/yum.repos.d/
+  with_items:
+   - 'http://download.opensuse.org/repositories/isv:/ownCloud:/desktop/Fedora_25/isv:ownCloud:desktop.repo'
+   - 'http://download.virtualbox.org/virtualbox/rpm/fedora/virtualbox.repo'
+   - 'https://download.docker.com/linux/fedora/docker-ce.repo'
+
+- name: upgrade all packages
+  dnf:
+    name: "*"
+    state: latest
+
+- name: install some packages
+  dnf:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - 'skype'
+    - "qemu-kvm"
+    - "qemu"
+    - "virt-manager"
+    - "libvirt"
+    - "openssh-clients"
+    - 'atop'
+    - 'htop'
+    - 'chromium.x86_64'
+    - 'chromium-native_client.x86_64'
+    - 'chromedriver.x86_64'
+    - 'fedora-user-agent-chrome.noarch'
+    - 'firefox'
+    - 'flash-plugin.x86_64'
+    - 'chromium-pepper-flash.x86_64'
+    - 'xorg-x11-fonts-cyrillic.noarch'
+    - 'curl'
+    - 'curl'
+    - 'nfs-utils'
+    - 'mythes-ru.noarch'
+    - 'mythes-en.noarch'
+    - 'mythes-ru'
+    - 'smplayer'
+    - 'remmina'
+    - '@development-libs'
+    - '@development-tools'
+    - '@fedora-packager'
+    - '@fonts'
+    - '@russian-support'
+    - '@java'
+    - '@legacy-fonts'
+    - '@libreoffice'
+    - '@lxqt-desktop'
+    - '@lxqt-media'
+    - '@multimedia'
+    - '@rpm-development-tools'
+    - '@vagrant'
+    - '@virtualization'
+    - 'lm_sensors'
+    - 'xsane'
+    - 'ufraw'
+    - 'xchat'
+    - 'gimp'
+    - 'pinta'
+    - 'smartmontools'
+    - 'hdparm'
+    - 'hddtemp'
+    - 'gftp'
+    - 'owncloud-client-nemo'
+    - 'owncloud-client-nautilus'
+    #- 'mesa-libGL.i686'
+    #- 'mesa-dri-drivers.i686'
+    #- 'mesa-libGL'
+    #- 'mesa-dri-drivers'
+    #- 'xorg-x11-drv-nvidia-libs.i686'
+    #- 'xorg-x11-drv-nvidia-libs'
+    #- 'xorg-x11-drv-amdgpu'
+    - 'steam'
+    - 'VirtualBox-guest-additions'
+    - 'VirtualBox-5.1'
+    #- 'kmod-nvidia.x86_64'
+    #- 'xorg-x11-drv-nvidia.x86_64'
+    #- 'xorg-x11-drv-nvidia-libs.i686'
+    #- 'xorg-x11-drv-nvidia-libs.x86_64'
+    - 'system-switch-displaymanager'
+    - 'kdm'
+    - 'docker-engine'
+    - 'mlocate'
+    #- 'xorg-x11-drv-vesa.x86_64'
+    #- 'xorg-x11-drv-fbdev.x86_64'
+    #- 'xorg-x11-drv-ati'
+
+- name: Activate KDM
+  shell: 'system-switch-displaymanager KDM'
+
+- name: enable systemctl for some services
+  shell: "systemctl enable {{ item }}"
+  with_items:
+    - 'kdm'
+    - 'docker'
+    - 'libvirtd'
+
+- name: Make sure we have a 'wheel' group
+  group:
+    name: wheel
+    state: present
+
+- name: Allow 'wheel' group to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^%wheel'
+    line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+
+#- name: enable KDM in systemd
+##  systemd:
+ #   name: kdm
+ #   enabled: yes
+ #   state: started
+
+#- name: Install nvidia drivers if the system has nvidia video card
+#  apt:
+#    name: "{{ recommended_nvidia.stdout }}"
+#    update_cache: yes
+#  when: recommended_nvidia.stdout != ""
+
+#- name: Install owncloud packages
+#  apt:
+#    name: 'owncloud-client-nautilus'
+#    allow_unauthenticated: yes
+
+- name: add user
+  user:
+    name: shaggycat
+    comment: Xeniya Lisovsksaya
+    groups: wheel,kvm,libvirt,vboxusers,docker
+    createhome: yes
+    password: '$6$wkMATnxBphug.Km6$srtlZKlggsW.3nP21Oxcvs8JBQVKFbJkMluxyTtIdpWmSiw7TWDbq.PytaOxxH72jilchUsvqk3/LXcsleIUN1'
+
+- name: get user's list
+  shell: "cat /etc/passwd | grep bash | awk -F: '{print $1}'"
+  register: system_users
+
+#- debug: var=system_users
+
+#- name:  set terminal settings for all users - inside X window session
+#  shell: "gsettings set org.pantheon.terminal.settings font \"Terminus {{ shell_font_size }}\""
+#  become_user: "{{ item }}"
+#  with_items: "{{ system_users.stdout_lines }}"
+
+#- name: touch .bashrc files
+#  file:
+#    state: touch
+#    dest: "/home/{{ item }}/.bashrc"
+#  when: item != "root"
+#  become_user: "{{ item }}"
+#  with_items: "{{ system_users.stdout_lines }}"
+
+
+- name: download Skype alfa (works together with old 4.3, useful to have 2 different skype online. Also MS have a plans to disable 4.3)
+  dnf:
+    name: 'https://go.skype.com/skypeforlinux-64-alpha.rpm'
+    state: present
+
+#- name: Accept steam's question
+#  debconf:
+#    name: 'steam'
+#    question: 'steam/question'
+#    value: ' I AGREE'
+#    vtype: select
+#
+#- name: Accept steam's license
+#  debconf:
+#    name: 'steam'
+#    question: 'steam/license'
+#    value: ''
+#    vtype: note
+
+- name: blacklist nouveau driver
+  kernel_blacklist:
+    name: nouveau
+    state: present
+
+#- name: Fix cobbler-s settings of network
+#  template:
+#    src: interfaces.j2
+#    dest: /etc/network/interfaces
+
+- name: fstab options for root file system
+  mount:
+    name: /
+    src: "UUID={{ item.uuid }}"
+    opts: "rw,noatime,discard"
+    fstype: "{{ item.fstype }}"
+    state: present
+  with_items: ansible_mounts
+  when: item.mount == "/"
+
+- name: fstab options for home file system
+  mount:
+    name: /home
+    src:  "UUID={{ item.uuid }}"
+    opts: "rw,noatime,discard"
+    fstype: "{{ item.fstype }}"
+    state: present
+  with_items: ansible_mounts
+  when: item.mount == "/home"
